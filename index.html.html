@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>BOMB-Sorter</title>
+
+<style>
+canvas {
+	background-color:#fff;
+	border:7px solid #000;
+	border-radius: 5px;
+	display: inline;
+	background-image: url("img/background.jpg");
+	background-size: cover;
+}
+
+body{
+	display: flex;
+
+	justify-content: center;
+	align-items: center;
+
+}
+
+
+</style>
+<script>
+
+class GraphObj { //Klasse für Bomben
+
+  constructor(x, y, w, h, c, x_vel, y_vel, t, d, t1, isDragging, tb) {
+    this.x = x; //x position
+    this.y = y; //y position
+    this.w = w;	//width img = 64
+	this.h = h; //height img = 64
+	this.c = c; //color value
+	this.x_vel = x_vel; //random x velocity
+	this.y_vel = y_vel; //random y velocity
+	this.t = t; //live time of bomb
+	this.d = d; //check if it is dragged
+	this.t1 = t1; //live time of bomb in 100ms
+	this.isDragging = isDragging; //while draged
+	this.tb = tb; //live time of bomb die zweite
+  }
+}
+
+// GLOBAL VARIABLES
+var bList = null; // List of Bombbs
+
+var bomblt = 12; //LIVE time of bombs in sec
+
+var ref_time=0; //Reference Time
+var ref_time1=0; //Reference Time
+var ref_time2=0; // Reference Time
+var lives = 0; //Lives count
+
+var SAVE_KEY_SCORE = "highscore"; //save key for local storage of highscore
+
+var score = 0 //Score count
+
+//Sounds
+var gametheme = document.getElementById('gametheme'); //Hauptmusik
+var boom = new Audio("audio/explode.mp3"); //Explosions- Sound
+var sco = new Audio("audio/score.wav"); //Score- Sound
+
+//get the highscore from local storage
+//um Highscore local zu speichern von save key
+var scoreStr = localStorage.getItem(SAVE_KEY_SCORE);
+if(scoreStr == null){	//wenn der Highscore undefiniert wäre, würde er null einzeigen und nicht 0
+	scorehigh = 0;
+}
+else{ //Highscore wird als String im Speicher gespeichert, deswegen mit parseInt in Intager umwandeln
+	var scorehigh = parseInt(scoreStr);
+}
+
+var pause = false; //pause, wenn pausemenü offen ist
+var dragok = false; //Variable zum Checken ob Bombe berührt wurde (müsste nicht global sein)
+var startX; //start cordionaten für drag and drop
+var startY;
+
+var pause1 = false; //hilfsvariable für pausemenü
+
+var c = document.getElementById("myCanvas"); //canvas in javascript bearbeiten
+
+function drawGrid(ele,ctx){ // Draw für die Zonen
+	
+	//Zeichnen der Rot-Grau und Normal Zone + gelbe Linien
+	ctx.globalAlpha = 0.5;
+	ctx.fillStyle = "#ff9999";
+	ctx.fillRect(0,0,ele.width/3,ele.height)
+
+	ctx.fillStyle = "#60615a";
+	ctx.fillRect(2* (ele.width/3),0,ele.width/3,ele.height)
+
+	ctx.globalAlpha = 1;
+	ctx.moveTo(ele.width/3 +1,0);
+	ctx.lineTo(ele.width/3 +1, ele.height);
+
+	ctx.moveTo(2*(ele.width/3 -1),0);
+	ctx.lineTo(2*(ele.width/3 - 1), ele.height);
+	ctx.lineWidth = 5 ;
+	ctx.strokeStyle = "#f5f242";
+	ctx.stroke();
+
+	ctx.drawImage(livespng, ele.width - 130, 20,50,50); //Grundbild vom Lebensherz
+
+}
+
+function drawAll() //Draw Function für Bomben und Score, leben
+{
+	var ele = document.getElementById("myCanvas");
+	var ctx = ele.getContext("2d");
+	
+	ele.width = ele.width; // clear everything!
+
+	drawGrid(ele,ctx); // call the function ...
+	
+	//Einfügen der verschiedenen Bomben bilder
+	var bombb = document.getElementById("bombb");
+	var bombr = document.getElementById("bombr");
+	var bombr_step = document.getElementById("bombr_step");
+	var bombb_step = document.getElementById("bombb_step");
+	var bombw = document.getElementById("bombw");
+
+	//verschiedenen Bilder der Explosion
+	var ep1 = document.getElementById("ep1");
+	var ep4 = document.getElementById("ep4");;
+	var ep6 = document.getElementById("ep6");
+	var ep8 = document.getElementById("ep8");
+
+	// draw bombs
+	for (var i=0; i<bList.length; i++)
+	{
+		var o = bList[i];
+	
+		if(o.c == 0 && o.t1 != 10*bomblt-10 && o.t1 != 10*bomblt-20 && o.t1 != 10*bomblt-30 && o.t1 != 10*bomblt-40){ //Zeichen der roten Bombe
+			ctx.drawImage(bombr, o.x,o.y,o.w,o.h);
+			
+		}
+
+		if(o.c == 1 && o.t1 != 10*bomblt-10 && o.t1 != bomblt-20 && o.t1 != 10*bomblt-30 && o.t1 != 10*bomblt-40 ){ //Zeichen der Bombe schwarzen Bombe 
+			ctx.drawImage(bombb, o.x,o.y,o.w,o.h);
+			
+		}
+
+		if(o.c == 2 && o.t1 != 10*bomblt-10 && o.t1 != bomblt-20 && o.t1 != 10*bomblt-30 && o.t1 != 10*bomblt-40 ){ //Zeichen der roten Bombe mit Step
+			ctx.drawImage(bombr_step, o.x,o.y,o.w,o.h);
+			
+		}
+
+		if(o.c == 3 && o.t1 != 10*bomblt-10 && o.t1 != 10*bomblt-20 && o.t1 != 10*bomblt-30 && o.t1 != 10*bomblt-40 ){ //Zeichen der schwarzen Bombe mit Step
+			ctx.drawImage(bombb_step, o.x,o.y,o.w,o.h);
+			
+		}
+
+		if((o.t1 == 10*bomblt-10 || o.t1 == 10*bomblt-20 || o.t1 == 10*bomblt-30 || o.t1 == 10*bomblt-40) && o.d == false && o.isDragging == false){ //Zechnen der weißen Bombe
+			ctx.drawImage(bombw, o.x,o.y,o.w,o.h);
+			
+		}
+
+		if(o.c == 5 && o.t1 <= 10*bomblt+1){ //Zeichnen des ersten Bildes der Explosion
+				o.x_vel = 0;
+				o.y_vel = 0;
+				ctx.drawImage(ep4, o.x, o.y, o.w, o.h);
+		} 
+
+		else if(o.c == 5 && o.t1 == 10*bomblt+2 ){ //Zeichnen des zweiten Bildes der Explosion
+			o.x_vel = 0;
+			o.y_vel = 0;
+			ctx.drawImage(ep6, o.x, o.y, o.w, o.h);
+		}
+
+		else if(o.c == 5 && o.t1 == 10*bomblt+3 ){ //Zeichnen des dritten Bildes der Explosion
+			o.x_vel = 0;
+			o.y_vel = 0;
+			ctx.drawImage(ep8, o.x, o.y, o.w, o.h);
+		}
+
+		else if(o.c == 5 && o.t1 == 10*bomblt+4 ){ //Löschen der Bombe wenn Explodiert
+			bList.splice(o,1);
+			draggable: false;
+		}
+	}
+	
+	// draw lives
+	ctx.strokeStyle= "black";
+	ctx.lineWidth = 2;
+	ctx.font = "bold 40pt Minecraft";
+	ctx.fillStyle = "red";
+	ctx.fillText(+lives, ele.width - 70, 63);
+	ctx.strokeText(+lives, ele.width - 70, 63);
+
+	// draw score
+	ctx.strokeStyle= "black"; 
+	ctx.fillStyle= "white";
+	ctx.lineWidth = 2;  
+	ctx.font = "bold 40pt Minecraft"; 
+	ctx.fillText("SC: "+score,20,63);
+	ctx.strokeText("SC: "+score,20,63);
+
+	//draw highscore
+	ctx.fillStyle = "white";  
+	ctx.font = "bold 30pt minecraft "; 
+	ctx.fillText("HI: "+scorehigh,20,100);
+	ctx.strokeText("HI: "+scorehigh,20,100);
+
+	//draw black-squere
+	
+	ctx.fillStyle = "white";
+	ctx.rect(1,1,20,63)
+
+	ctx.drawImage(livespng, ele.width - 130, 20,50,50); //draw herz 
+}
+
+function positionCheck(i, ele){ //Änderung der velocity bei Wandberührung
+		
+	//Postitioncheck wenn noch nicht gezogen (also in mitte)
+	if(bList[i].d == false || bList[i].isDragging == false){
+		if(bList[i].x < ele.width/3){
+			bList[i].x_vel = bList[i].x_vel * (-1);
+		}
+		else if(bList[i].x > 2*(ele.width/3) -64){
+			bList[i].x_vel = bList[i].x_vel * (-1);
+		}
+		else if(bList[i].y < 0){
+			bList[i].y_vel = bList[i].y_vel * (-1);
+		}
+		else if(bList[i].y > ele.height -64){
+			bList[i].y_vel = bList[i].y_vel * (-1);
+		}
+	}
+	//Positioncheck wenn gezogen und auf rechten Seite
+	if(bList[i].d == true){
+		if(bList[i].x < 2*(ele.width/3)){
+			bList[i].x_vel = bList[i].x_vel * (-1);
+		}
+		else if(bList[i].x > ele.width-64){
+			bList[i].x_vel = bList[i].x_vel * (-1);
+		}
+		else if(bList[i].y < 0){
+			bList[i].y_vel = bList[i].y_vel * (-1);
+		}
+		else if(bList[i].y > ele.height -64){
+			bList[i].y_vel = bList[i].y_vel * (-1);
+		}
+	}
+	//Positioncheck wenn gezogen und auf der linken Seite
+	if(bList[i].d == true){
+		if(bList[i].x < 0){
+			bList[i].x_vel = bList[i].x_vel * (-1);
+		}
+		else if(bList[i].x > ele.width/3-64){
+			bList[i].x_vel = bList[i].x_vel * (-1);
+		}
+		else if(bList[i].y < 0){
+			bList[i].y_vel = bList[i].y_vel * (-1);
+		}
+		else if(bList[i].y > ele.height -64){
+			bList[i].y_vel = bList[i].y_vel * (-1);
+		}
+	}
+
+}
+
+function dragcheck(i){ //Check ob richtige Farbe in richtige Feld gezogen wurde + SCORE
+
+	var ele = document.getElementById("myCanvas");
+	
+
+		//Checken ob ob Rot in richtige Feld gezogen wurde
+		if(bList[i].x < ele.width/3 && bList[i].y <= ele.height){ 
+			if(bList[i].c == 0 || bList[i].c == 2){ 
+				if(bList[i].d == false){
+					score = score +1;	//Punkt zum Score hinzufügen
+					bList[i].d = true;
+					//Ablspielen score sound
+					sco.volume = 0.1;
+					sco.pause();
+					sco.currentTime = 0;
+					sco.play();
+				}
+				//Geben einer neuen random geschwindigkeit
+				bList[i].x_vel =  Math.ceil(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1);
+				bList[i].y_vel =  Math.ceil(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1);
+				bList[i].d = true;
+
+			}
+		}
+		//Checken ob Schwarz in richtige Feld gezogen wurde
+		if(bList[i].x > 2*(ele.width/3) && bList[i].y <= ele.height){
+			if(bList[i].c == 1 || bList[i].c == 3){
+				if(bList[i].d == false){
+					score = score +1; //Punkt zum Score hinzufügen
+					bList[i].d = true;
+					//
+					sco.volume = 0.1;
+					sco.pause();
+					sco.currentTime = 0;
+					sco.play();	
+				}
+				//Gaben einer neuen random geschwindigkeit
+				bList[i].x_vel =  Math.ceil(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1);
+				bList[i].y_vel =  Math.ceil(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1);
+				bList[i].d = true;
+			}
+		}
+		//Wenn Highscore geknackt wurde, soll highscore überschrieben werden
+		if(score > scorehigh){
+			scorehigh = score;
+			localStorage.setItem(SAVE_KEY_SCORE, scorehigh);
+		}
+}
+
+function timecounter(){ //counter von bomben lifetime in sec
+	for(var i = 0;i < bList.length; i++){
+		bList[i].t++;
+		bList[i].t2++;
+	}
+}
+
+function explosion(){ //Checken ob Explosion stattfinden soll
+	for (var i = 0; i < bList.length; i++){
+        if(bList[i].t1 == 10*bomblt && bList[i].d == false){ 
+           	for(var z = 0; z < bList.length; z++){
+                    bList[z].c = 5; //Einleitung der Explosion über Farbe
+					bList[z].t1 = 10*bomblt; //Einleitung der Explosion über Zeit
+				}
+        	break;
+		}
+	}
+}
+
+function animateStep(){ //Animator of Steps (+counter for bomb lifetime in 10 ms)
+	//Ändern vom Bild der Bombe jede 10 ms
+	for(var i = 0;i < bList.length; i++){
+			if(bList[i].c == 0){
+				bList[i].c = 2;
+			}
+			else if(bList[i].c == 1){
+				bList[i].c = 3;
+			}
+			else if(bList[i].c == 2){
+				bList[i].c = 0;
+			}
+			else if(bList[i].c == 3){
+				bList[i].c = 1;
+			}	
+
+			else if(bList[i].t == bomblt-4){
+			bList[i].c = 4;
+			}
+
+			else if(bList[i].t == bomblt-2){
+			bList[i].c = 4;
+			}
+			//Counter in ms (Lebenszeit der Bomben)
+			bList[i].t1++;
+			bList[i].tb++;
+
+			//Ckeck ob Leben anbegezogen werden soll
+			if(bList[i].tb == bList[i].t1 && bList[i].tb >= 10*bomblt+4 && bList[i].d == false && bList[i].isDragging == false){ //Leben abzug!
+					lives = lives - 1; //Leben abszug
+					//Es wird überprüft, ob sich die Zeit in .t1 noch immer gleich wie .tb ist obwohl die explosion eingeleitet wurde
+					console.log(i);
+					//Explosion sound
+					boom.volume = 0.5;
+					boom.pause();
+					boom.currentTime = 0;
+					boom.play();
+					break;
+				}
+			
+	}
+}
+
+function functimer(){ //Game-Funktion - creates Bombs...
+
+	var ele = document.getElementById("myCanvas");
+	var ctx = ele.getContext("2d");
+	var spawntime = 1000;
+
+	if(lives > 0){ //Game over menü
+	if(pause == false){ //Pause menü
+
+	// create new bomb every s
+	//Wird jede sec aufgerufen
+	if (Date.now() - ref_time >= spawntime)
+	{
+		// random number between 0 and ele.width
+		var pos_x = Math.floor(Math.random() * (ele.width/3 - 64)) + (ele.width/3 +1); 
+
+		//random height
+		var pos_y = Math.floor(Math.random() * (ele.height - 70) -1);
+
+		//random color
+		var color = Math.round(Math.random());
+		
+		//random x velocity
+		var x_vel = Math.ceil(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1);
+
+		//random y velocity
+		var y_vel = Math.ceil(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1);
+
+		var t = 0; //Lebenszeit in sec
+		var d = 0;
+		var t1= 0; //Lebenszeit in 10ms
+		var tb = 0; //Lebenszeit in 10ms
+		var isDragging = false; //Ob gerade gedragt wird
+
+		var o = new GraphObj(pos_x,pos_y,64,64, color, x_vel, y_vel, t, d, t1, isDragging, tb); // create new bomb
+		bList.push(o);
+
+		//bomb lifetime counter in sec
+		timecounter();
+
+		ref_time = Date.now();
+	}
+	
+	explosion(); //explosion checker
+
+	//Wird jede 100ms aufgerufen
+	if (Date.now() - ref_time1 >= 100){
+		animateStep(); //Step animatior (counter for bomb lifetime in ms)
+		ref_time1 = Date.now();
+	}
+
+	// move bombs
+	for (var i=0; i<bList.length; i++)
+	{
+		bList[i].y += bList[i].y_vel; //changing x position for movement
+		bList[i].x += bList[i].x_vel; //changing y position for movement
+		positionCheck(i, ele);
+	}
+
+	drawAll(); //draw function
+	requestAnimationFrame(functimer); // draw everything BEFORE screen update
+	
+	//add Event-Listener for drag and drop
+	ele.onmousedown = myDown;
+	ele.onmouseup = myUp;
+	ele.onmousemove = myMove;
+
+	//Check if pause menü is open
+	}
+	else if(pause == true){
+		ctx.drawImage(paus, ele.width/2-300, 100,600,180);
+		ctx.drawImage(play, ele.width/2-200, 300,400,130);
+		} 
+	}
+	//Check if game over
+	else if(lives == 0){
+		ctx.drawImage(gameover, ele.width/2-300, 100,600,180);
+		ctx.drawImage(play, ele.width/2-200, 300,400,130); 
+	}
+ 
+}
+
+function myDown(e){ //Wenn maustaste gedrückt wird
+
+	if(pause == false && lives > 0){ //nur wenn nicht game over oder keine pause
+	e.preventDefault();
+	e.stopPropagation();
+
+	var mx = parseInt(e.clientX);
+    var my = parseInt(e.clientY);
+
+	//Check ob Mausecursor auf Bombe liegt
+	for(var i = 0; i < bList.length; i++){
+		if(e.pageX < bList[i].x + 64 + c.offsetLeft && e.pageX > bList[i].x + c.offsetLeft && e.pageY < bList[i].y + 64 + c.offsetTop && e.pageY > bList[i].y + c.offsetTop){
+			bList[i].x_vel = 0;
+			bList[i].y_vel = 0;
+			dragok = true;
+			bList[i].isDragging = true;
+		}
+	}
+	startX = mx;
+    startY = my;
+	console.log('mouse down: offsetX=' + e.offsetX + ", offsetY="+ e.offsetY);
+	}
+}
+
+function myUp(e){ //Wenn Bombe wieder losgelassen wird
+
+	if(pause == false && lives > 0){ //Listener sind nur aktiv, wenn gerade kein pausezustand ist.
+	e.preventDefault();
+    e.stopPropagation();
+
+	for (var i = 0; i < bList.length; i++) {
+		bList[i].isDragging = false;
+		dragcheck(i);
+	}
+	}
+	
+}
+
+function myMove(e){	//Damit Bombe den Curser verfolgt. während ziehen
+	if(pause == false && lives > 0){
+	if(dragok == true){
+		e.preventDefault();
+		e.stopPropagation();
+		
+		var mx = parseInt(e.clientX);
+		var my = parseInt(e.clientY);
+		
+		var dx = mx - startX;
+        var dy = my - startY;
+
+		//Kordinaten der Bombe auf Mauszeiger setzen
+		for (var i = 0; i < bList.length; i++) {
+            var r = bList[i];
+            if (r.isDragging) {
+                r.x += dx;
+                r.y += dy;
+            }
+		}
+		drawAll();
+		//Diferenz
+		startX = mx;
+        startY = my;
+	}
+	}
+}
+//Pausemenü und Gameover menü über jeden Key
+function keyd(){ 
+
+	if(lives == 0){
+		lives = 3;
+		functimer();
+	}
+
+	else if(lives > 0 && lives <= 3 && pause1==false){
+		pause = true;
+		pause1 = true;
+		console.log('4');
+		functimer();
+	}
+
+	else if(pause == true){
+		pause = false;
+		pause1 = false;
+		console.log('5');
+		functimer();
+	}
+
+
+}
+
+function start() { //When body loads
+	
+	bList = new Array(); //list of bombs
+	
+	c = document.getElementById("myCanvas"); 
+	c.setAttribute('tabindex','0');
+	c.focus();
+	
+	//Hinzufügen der Event-Listener
+	c.onmousedown = myDown;
+	c.onmouseup = myUp;
+	c.onmousemove = myMove;
+	c.onkeydown = keyd;
+
+	drawAll(); //draw sections
+	requestAnimationFrame(functimer); // draw everything BEFORE screen update
+
+	var gametheme = document.getElementById('gametheme');
+
+	gametheme.play(); 
+	gametheme.loop = true; //Damit sich audio immer widerhohlt.
+	gametheme.volume = 0.2;
+}
+
+</script>
+
+</head>
+
+<body onload="start()">
+
+
+<img id="livespng" src="img/lives.png" alt="x" style="display: none;">	
+<img id="gameover" src="img/game over.png" alt="x" style="display: none;">
+<img id="play" src="img/play.png" alt="x" style="display: none;">
+<img id="paus" src="img/pause.png" alt="x" style="display: none;">
+
+<img id="bombb" src="img/bombb.png" alt="x" style="display: none;">
+<img id="bombr" src="img/bombr.png" alt="y" style="display: none;">
+<img id="bombr_step" src="img/bombr_step1.png" alt="y" style="display: none;">
+<img id="bombb_step" src="img/bombb_step.png" alt="y" style="display: none;">
+<img id="bombw" src="img/bombw.png" alt="y" style="display: none;">
+
+<img id="ep1" src="img/ep/ep1.png" alt="y" style="display: none;">
+<img id="ep2" src="img/ep/ep2.png" alt="y" style="display: none;">
+<img id="ep3" src="img/ep/ep3.png" alt="y" style="display: none;">
+<img id="ep4" src="img/ep/ep4.png" alt="y" style="display: none;">
+<img id="ep5" src="img/ep/ep5.png" alt="y" style="display: none;">
+<img id="ep6" src="img/ep/ep6.png" alt="y" style="display: none;">
+<img id="ep7" src="img/ep/ep7.png" alt="y" style="display: none;">
+<img id="ep8" src="img/ep/ep8.png" alt="y" style="display: none;">
+<img id="ep9" src="img/ep/ep9.png" alt="y" style="display: none;">
+<img id="ep10" src="img/ep/ep10.png" alt="y" style="display: none;">
+
+
+<audio src="audio/gamemusic.mp3" id="gametheme"></audio>
+<audio src="audio/explode.m4a" id="boom"></audio>
+
+
+<div>
+<canvas id="myCanvas" width="1000" height="600"></canvas>
+</div>
+</body>
+
+</html>

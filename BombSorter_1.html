@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>BOMB-Sorter</title>
+
+<style>
+canvas {
+	background-color:#fff;
+	border:7px solid #000;
+	border-radius: 5px;
+	display: inline;
+	background-image: url("img/background.jpg");
+	background-size: cover;
+}
+
+body{
+	display: flex;
+
+	justify-content: center;
+	align-items: center;
+
+}
+
+
+</style>
+<script>
+
+class GraphObj {
+
+  constructor(x, y, w, h, c, x_vel, y_vel) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+	this.h = h;
+	this.c = c;
+	this.x_vel = x_vel;
+	this.y_vel = y_vel;
+  }
+  info() {
+    return "\ngraphical object: x="+this.x + ", y="+this.y+", w="+this.w+", h="+this.h+", h="+this.c;
+  }
+}
+
+// global variables: can be used anywhere
+var x=10;
+var y=10;
+var width=30;
+var height=40;
+// Declaration of Lists
+var bList = null; // List of Bombs
+var xlist = null;
+var ylist = null;
+
+var ref_time=0; // Reference Time
+var lives = 10;
+
+
+
+function drawGrid(ele,ctx){ // declaration of a new function
+	
+	ctx.globalAlpha = 0.5;
+	ctx.fillStyle = "#ff9999";
+	ctx.fillRect(0,0,ele.width/3,ele.height)
+
+	ctx.fillStyle = "#60615a";
+	ctx.fillRect(2* (ele.width/3),0,ele.width/3,ele.height)
+
+	ctx.globalAlpha = 1;
+	ctx.setLineDash([25, 15]);
+	ctx.moveTo(ele.width/3 +1,0);
+	ctx.lineTo(ele.width/3 +1, ele.height);
+
+	ctx.moveTo(2*(ele.width/3 -1),0);
+	ctx.lineTo(2*(ele.width/3 - 1), ele.height);
+	ctx.lineWidth = 10;
+	ctx.strokeStyle = "#f5f242";
+	ctx.stroke();
+}
+
+function drawAll()
+{
+	var ele = document.getElementById("myCanvas");
+	var ctx = ele.getContext("2d");
+	
+	ele.width = ele.width; // clear everything!
+
+	drawGrid(ele,ctx); // call the function ...
+	
+	var bombb = document.getElementById("bombb");
+	var bombr = document.getElementById("bombr");
+
+	// draw bombs
+	for (var i=0; i<bList.length; i++)
+	{
+		var o = bList[i];
+		if(o.c == 0){
+			ctx.drawImage(bombr, o.x,o.y,o.w,o.h);
+		}
+
+		if(o.c == 1){
+			ctx.drawImage(bombb, o.x,o.y,o.w,o.h);
+		}
+
+	}
+	
+	// draw lives
+	ctx.font = "italic small-caps bold 30px Helvetica, Arial, sans-serif";
+	ctx.fillStyle = "black";
+	ctx.fillText("lives: "+lives, 20, 30);
+
+}
+
+function positionCheck(i, ele){
+		if(bList[i].x < ele.width/3){
+			bList[i].x_vel = bList[i].x_vel * (-1);
+		}
+		else if(bList[i].x > 2*(ele.width/3) -64){
+			bList[i].x_vel = bList[i].x_vel * (-1);
+		}
+		else if(bList[i].y < 0){
+			bList[i].y_vel = bList[i].y_vel * (-1);
+		}
+		else if(bList[i].y > ele.height -64){
+			bList[i].y_vel = bList[i].y_vel * (-1);
+		}
+}
+
+
+function functimer(){
+
+	var ele = document.getElementById("myCanvas");
+	
+	// create new bomb every s
+	if (Date.now() - ref_time >= 1000)
+	{
+		// random number between 0 and ele.width
+		var pos_x = Math.floor(Math.random() * (ele.width/3 - 64)) + (ele.width/3 +1); 
+
+		//random height
+		var pos_y = Math.floor(Math.random() * (ele.height - 70) -1);
+
+		//random color
+		var color = Math.round(Math.random());
+		
+		//random x velocity
+		var x_vel = Math.ceil(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1);
+
+		//random y velocity
+		var y_vel = Math.ceil(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1);
+
+		var o = new GraphObj(pos_x,pos_y,64,64, color, x_vel, y_vel); // create new bomb
+		bList.push(o);
+		
+		
+
+
+		ref_time = Date.now();
+	}
+	
+	var xlist = null;
+	xlist = new Array();
+
+	var ylist = null;
+	ylist = new Array();
+
+
+	// move bombs
+	for (var i=0; i<bList.length; i++)
+	{
+		bList[i].y += bList[i].y_vel;
+		bList[i].x += bList[i].x_vel;
+		positionCheck(i, ele);
+	}
+
+
+
+	
+	
+	drawAll();
+	requestAnimationFrame(functimer); // draw everything BEFORE screen update
+	
+}
+
+	
+//    var c = document.getElementById("myCanvas");
+
+function f_mousedown(e)
+{
+	console.log('mouse down: x=' + e.x + ", y="+ e.y);
+	console.log('mouse down: offsetX=' + e.offsetX + ", offsetY="+ e.offsetY);
+
+//    var c = document.getElementById("myCanvas");
+	
+	
+}
+function start() {
+	// create lists
+	
+	bList = new Array();
+	
+    var c = document.getElementById("myCanvas");
+	c.setAttribute('tabindex','0');
+	c.focus();
+	c.addEventListener('mousedown', f_mousedown, false);
+	
+	var xlist = null;
+	xlist = new Array();
+
+	var ylist = null;
+	ylist = new Array();
+
+	drawAll();
+	requestAnimationFrame(functimer); // draw everything BEFORE screen update
+
+	
+}
+
+</script>
+</head>
+<body onload="start()">
+
+<img id="bombb" src="img/bombb.png" alt="x" style="display: none;">
+<img id="bombr" src="img/bombr.png" alt="y" style="display: none;">
+
+<div>
+<canvas id="myCanvas" width="1000" height="600"></canvas>
+</div>
+
+</body>
+</html>
