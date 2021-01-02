@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>BOMB-Sorter</title>
+
+<style>
+canvas {
+	background-color:#fff;
+	border:7px solid #000;
+	border-radius: 5px;
+	display: inline;
+	background-image: url("img/background.jpg");
+	background-size: cover;
+}
+
+body{
+	display: flex;
+
+	justify-content: center;
+	align-items: center;
+
+}
+
+
+</style>
+<script>
+
+class GraphObj { //Klasse für Bomben
+
+  constructor(x, y, w, h, c, x_vel, y_vel, t, d) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+	this.h = h;
+	this.c = c;
+	this.x_vel = x_vel;
+	this.y_vel = y_vel;
+	this.t = t;
+	this.d = d;
+  }
+
+  info() {
+    return "\ngraphical object: x="+this.x + ", y="+this.y+", w="+this.w+", h="+this.h+", h="+this.c;
+  }
+}
+
+
+// Declaration of Lists
+var bList = null; // List of Bombbs
+
+var bomblt = 12;
+
+var ref_time=0; //Reference Time
+var ref_time1=0; //Reference Time
+var ref_time2=0; // Reference Time
+var lives = 10; //Lives count
+var score = 0; //Scoure count
+
+var dragok = false; 
+var counter = false;
+
+var c = document.getElementById("myCanvas");
+
+function drawGrid(ele,ctx){ // Draw für die Zonen
+	
+	ctx.globalAlpha = 0.5;
+	ctx.fillStyle = "#ff9999";
+	ctx.fillRect(0,0,ele.width/3,ele.height)
+
+	ctx.fillStyle = "#60615a";
+	ctx.fillRect(2* (ele.width/3),0,ele.width/3,ele.height)
+
+	ctx.globalAlpha = 1;
+	ctx.setLineDash([25, 15]);
+	ctx.moveTo(ele.width/3 +1,0);
+	ctx.lineTo(ele.width/3 +1, ele.height);
+
+	ctx.moveTo(2*(ele.width/3 -1),0);
+	ctx.lineTo(2*(ele.width/3 - 1), ele.height);
+	ctx.lineWidth = 10;
+	ctx.strokeStyle = "#f5f242";
+	ctx.stroke();
+}
+
+function drawAll() //Draw Function für Bomben und Score, leben
+{
+	var ele = document.getElementById("myCanvas");
+	var ctx = ele.getContext("2d");
+	
+	ele.width = ele.width; // clear everything!
+
+	drawGrid(ele,ctx); // call the function ...
+	
+	var bombb = document.getElementById("bombb");
+	var bombr = document.getElementById("bombr");
+	var bombr_step = document.getElementById("bombr_step");
+	var bombb_step = document.getElementById("bombb_step");
+	var bombw = document.getElementById("bombw");
+
+	var ep1 = document.getElementById("ep1");
+	var ep4 = document.getElementById("ep4");;
+	var ep6 = document.getElementById("ep6");
+	var ep8 = document.getElementById("ep8");
+
+	// draw bombs
+	for (var i=0; i<bList.length; i++)
+	{
+		var o = bList[i];
+		
+		
+		if(o.c == 0 && o.t != 8 && o.t != 10 ){ //Zeichen der roten Bombe
+			ctx.drawImage(bombr, o.x,o.y,o.w,o.h);
+			draggable: true;
+		}
+
+		if(o.c == 1 && o.t != 8 && o.t != 10 ){ //Zeichen der Bombe schwarzen Bombe 
+			ctx.drawImage(bombb, o.x,o.y,o.w,o.h);
+			draggable: true;
+		}
+
+		if(o.c == 2 && o.t != 8 && o.t != 10 ){ //Zeichen der roten Bombe mit Step
+			ctx.drawImage(bombr_step, o.x,o.y,o.w,o.h);
+			draggable: true;
+		}
+
+		if(o.c == 3 && o.t != 8 && o.t != 10 ){ //Zeichen der schwarzen Bombe mit Step
+			ctx.drawImage(bombb_step, o.x,o.y,o.w,o.h);
+			draggable: true;
+		}
+
+		if(o.t == bomblt-2 || o.t == bomblt-4){ //Zechnen der weißen Bombe
+			ctx.drawImage(bombw, o.x,o.y,o.w,o.h);
+			draggable: true;
+		}
+
+
+		if(o.c == 5 && o.t == bomblt){
+				o.x_vel = 0;
+				o.y_vel = 0;
+				ctx.drawImage(ep4, o.x, o.y, o.w, o.h)
+				draggable: false;
+		
+
+			
+		} 
+		else if(o.c == 5 && o.t == bomblt+1){
+			o.x_vel = 0;
+			o.y_vel = 0;
+			ctx.drawImage(ep6, o.x, o.y, o.w, o.h);
+			draggable: false;
+
+			
+			
+			
+		}
+
+		else if(o.c == 5 && o.t == bomblt+2){
+			o.x_vel = 0;
+			o.y_vel = 0;
+			ctx.drawImage(ep8, o.x, o.y, o.w, o.h);
+			draggable: false;
+			
+		}
+
+		else if(o.c == 5 && o.t == bomblt+3){
+			bList.splice(o,1);
+			draggable: false;
+			;
+		}
+
+
+	}
+	
+	// draw lives
+	ctx.font = "normal small-caps 70px Minecraft";
+	ctx.fillStyle = "red";
+	ctx.fillText(+lives, ele.width - 105, 70);
+
+	// draw score
+	ctx.font = "normal small-caps 70px Minecraft";
+	ctx.fillStyle = "black";
+	ctx.fillText(+score, 20, 70);
+
+}
+
+function positionCheck(i, ele){
+		if(bList[i].x < ele.width/3){
+			bList[i].x_vel = bList[i].x_vel * (-1);
+		}
+		else if(bList[i].x > 2*(ele.width/3) -64){
+			bList[i].x_vel = bList[i].x_vel * (-1);
+		}
+		else if(bList[i].y < 0){
+			bList[i].y_vel = bList[i].y_vel * (-1);
+		}
+		else if(bList[i].y > ele.height -64){
+			bList[i].y_vel = bList[i].y_vel * (-1);
+		}
+}
+
+function timecounter(){
+	for(var i = 0;i < bList.length; i++){
+		bList[i].t++;
+	}
+}
+
+function explosion(){
+	for (var i = 0; i < bList.length; i++){
+		
+        if(bList[i].t == bomblt && bList[i].d == 0){
+                for(var z = 0; z < bList.length; z++){
+                    if(bList[z].d == 0){ 
+						bList[z].t = bomblt;
+                        bList[z].c = 5;
+                    }
+                }
+				animation = true;
+				lives = lives -1;
+                break;
+        }
+    
+	}
+}
+
+
+function animateStep(){
+	
+	for(var i = 0;i < bList.length; i++){
+
+
+			if(bList[i].c == 0){
+				bList[i].c = 2;
+			}
+			else if(bList[i].c == 1){
+				bList[i].c = 3;
+			}
+			else if(bList[i].c == 2){
+				bList[i].c = 0;
+			}
+			else if(bList[i].c == 3){
+				bList[i].c = 1;
+			}	
+
+			else if(bList[i].t == bomblt-4){
+			bList[i].c = 4;
+			}
+
+			else if(bList[i].t == bomblt-2){
+			bList[i].c = 4;
+			}
+
+			
+	}
+}
+
+function functimer(){
+
+	var ele = document.getElementById("myCanvas");
+	
+	// create new bomb every s
+	if (Date.now() - ref_time >= 1000)
+	{
+		// random number between 0 and ele.width
+		var pos_x = Math.floor(Math.random() * (ele.width/3 - 64)) + (ele.width/3 +1); 
+
+		//random height
+		var pos_y = Math.floor(Math.random() * (ele.height - 70) -1);
+
+		//random color
+		var color = Math.round(Math.random());
+		
+		//random x velocity
+		var x_vel = Math.ceil(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1);
+
+		//random y velocity
+		var y_vel = Math.ceil(Math.random() * 2) * (Math.round(Math.random()) ? 1 : -1);
+
+		var t = 0;
+		var d = 0;
+
+		var o = new GraphObj(pos_x,pos_y,64,64, color, x_vel, y_vel, t, d); // create new bomb
+		bList.push(o);
+
+		timecounter();
+
+		console.log(bList[1]);
+
+		ref_time = Date.now();
+	}
+
+	
+	explosion();
+
+	if (Date.now() - ref_time1 >= 100){
+		animateStep();
+		ref_time1 = Date.now();
+	}
+
+
+	var xlist = null;
+	xlist = new Array();
+
+	var ylist = null;
+	ylist = new Array();
+
+
+	// move bombs
+	for (var i=0; i<bList.length; i++)
+	{
+		bList[i].y += bList[i].y_vel;
+		bList[i].x += bList[i].x_vel;
+		positionCheck(i, ele);
+	}
+
+	drawAll();
+	requestAnimationFrame(functimer); // draw everything BEFORE screen update
+	
+}
+
+function myMove(i,e){
+	if(dragok == true){
+		bList[i].x = e.pageX - c.offsetLeft;
+		bList[i].y = e.pageY - c.offsetTop;
+	}
+}
+
+function myDown(e){
+	for(var i = 0; i < bList.length; i++){
+		if(e.pageX < bList[i].x + 64 + c.offsetLeft && e.pageX > bList[i].x + c.offsetLeft && e.pageY < bList[i].y + 64 + c.offsetTop && e.pageY > bList[i].y + c.offsetTop){
+
+			bList[i].x = e.pageX - c.offsetLeft;
+			bList[i].y = e.pageY - c.offsetTop;
+			bList[i].x_vele = 0;
+			bList[i].y_vel = 0;
+			dragok = true;
+			c.onmousemove = myMove(i,e);
+		}
+	}
+	console.log('mouse down: offsetX=' + e.offsetX + ", offsetY="+ e.offsetY);
+}
+
+function myUp(){
+	dragok = false;	
+	myMove();
+}
+
+function start() {
+	// create lists
+	
+	bList = new Array();
+	
+    var c = document.getElementById("myCanvas");
+	c.setAttribute('tabindex','0');
+	c.focus();
+	c.addEventListener("mousedown", myDown, false);
+	c.addEventListener("mouseup", myUp, false);
+
+	var xlist = null;
+	xlist = new Array();
+
+	var ylist = null;
+	ylist = new Array();
+
+	drawAll();
+	requestAnimationFrame(functimer); // draw everything BEFORE screen update
+
+	
+}
+
+</script>
+
+</head>
+
+<body onload="start()">
+
+<img id="bombb" src="img/bombb.png" alt="x" style="display: none;">
+<img id="bombr" src="img/bombr.png" alt="y" style="display: none;">
+<img id="bombr_step" src="img/bombr_step1.png" alt="y" style="display: none;">
+<img id="bombb_step" src="img/bombb_step.png" alt="y" style="display: none;">
+<img id="bombw" src="img/bombw.png" alt="y" style="display: none;">
+
+<img id="ep1" src="img/ep/ep1.png" alt="y" style="display: none;">
+<img id="ep2" src="img/ep/ep2.png" alt="y" style="display: none;">
+<img id="ep3" src="img/ep/ep3.png" alt="y" style="display: none;">
+<img id="ep4" src="img/ep/ep4.png" alt="y" style="display: none;">
+<img id="ep5" src="img/ep/ep5.png" alt="y" style="display: none;">
+<img id="ep6" src="img/ep/ep6.png" alt="y" style="display: none;">
+<img id="ep7" src="img/ep/ep7.png" alt="y" style="display: none;">
+<img id="ep8" src="img/ep/ep8.png" alt="y" style="display: none;">
+<img id="ep9" src="img/ep/ep9.png" alt="y" style="display: none;">
+<img id="ep10" src="img/ep/ep10.png" alt="y" style="display: none;">
+
+
+<div>
+<canvas id="myCanvas" width="1000" height="600"></canvas>
+</div>
+
+</body>
+
+</html>
