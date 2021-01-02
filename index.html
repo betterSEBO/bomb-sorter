@@ -424,11 +424,14 @@ function functimer(){ //Game-Funktion - creates Bombs...
 	}
 
 	// move bombs
-	for (var i=0; i<bList.length; i++)
-	{
-		bList[i].y += bList[i].y_vel; //changing x position for movement
-		bList[i].x += bList[i].x_vel; //changing y position for movement
-		positionCheck(i, ele);
+	if (Date.now() - ref_time2 >= 16){
+		for (var i=0; i<bList.length; i++)
+		{
+			bList[i].y += bList[i].y_vel; //changing x position for movement
+			bList[i].x += bList[i].x_vel; //changing y position for movement
+			positionCheck(i, ele);
+		}
+		ref_time2 = Date.now();
 	}
 
 	drawAll(); //draw function
