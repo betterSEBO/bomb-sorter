@@ -330,7 +330,7 @@ function explosion(){ //Checken ob Explosion stattfinden soll
 }
 
 function animateStep(){ //Animator of Steps (+counter for bomb lifetime in 10 ms)
-	//Ändern vom Bild der Bombe jede 10 ms
+	//Ändern vom Bild der Bombe jede 100 ms
 	for(var i = 0;i < bList.length; i++){
 			if(bList[i].c == 0){
 				bList[i].c = 2;
@@ -345,13 +345,6 @@ function animateStep(){ //Animator of Steps (+counter for bomb lifetime in 10 ms
 				bList[i].c = 1;
 			}	
 
-			else if(bList[i].t == bomblt-4){
-			bList[i].c = 4;
-			}
-
-			else if(bList[i].t == bomblt-2){
-			bList[i].c = 4;
-			}
 			//Counter in ms (Lebenszeit der Bomben)
 			bList[i].t1++;
 			bList[i].tb++;
@@ -453,6 +446,7 @@ function functimer(){ //Game-Funktion - creates Bombs...
 	else if(lives == 0){
 		ctx.drawImage(gameover, ele.width/2-300, 100,600,180);
 		ctx.drawImage(play, ele.width/2-200, 300,400,130); 
+		score = 0;
 	}
  
 }
