@@ -168,7 +168,7 @@ function drawAll() //Draw Function für Bomben und Score, leben
 			o.y_vel = 0;
 			ctx.drawImage(ep6, o.x, o.y, o.w, o.h);
 		}
-
+		
 		else if(o.c == 5 && o.t1 == 10*bomblt+3 ){ //Zeichnen des dritten Bildes der Explosion
 			o.x_vel = 0;
 			o.y_vel = 0;
@@ -267,7 +267,7 @@ function dragcheck(i){ //Check ob richtige Farbe in richtige Feld gezogen wurde 
 	
 
 		//Checken ob ob Rot in richtige Feld gezogen wurde
-		if(bList[i].x < ele.width/3 && bList[i].y <= ele.height){ 
+		if(bList[i].x < ele.width/3-64 && bList[i].y <= ele.height){ 
 			if(bList[i].c == 0 || bList[i].c == 2){ 
 				if(bList[i].d == false){
 					score = score +1;	//Punkt zum Score hinzufügen
@@ -448,7 +448,6 @@ function functimer(){ //Game-Funktion - creates Bombs...
 		ctx.drawImage(play, ele.width/2-200, 300,400,130); 
 		score = 0;
 	}
- 
 }
 
 function myDown(e){ //Wenn maustaste gedrückt wird
